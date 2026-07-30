@@ -9,17 +9,21 @@ e = IPython.embed
 
 from collections import OrderedDict
 from robomimic.models.base_nets import ResNet18Conv, SpatialSoftmax
-from robomimic.algo.diffusion_policy import replace_bn_with_gn, ConditionalUnet1D
+#from robomimic.algo.diffusion_policy import replace_bn_with_gn, ConditionalUnet1D
 
 
-from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
-from diffusers.schedulers.scheduling_ddim import DDIMScheduler
-from diffusers.training_utils import EMAModel
+#from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
+#from diffusers.schedulers.scheduling_ddim import DDIMScheduler
+#from diffusers.training_utils import EMAModel
 
 
 class DiffusionPolicy(nn.Module):
     def __init__(self, args_override):
         super().__init__()
+        if not ROBOMIMIC_AVAILABLE:
+            raise ImportError(
+                "Diffision"
+            )
 
         self.camera_names = args_override['camera_names']
 
