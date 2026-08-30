@@ -1,85 +1,266 @@
-# Imitation Learning algorithms and Co-training for Mobile ALOHA
+# Mobile ALOHA ACT
 
+This project trains and evaluates **Action Chunking Transformer (ACT)** policies on the **Mobile ALOHA** platform using real-world teleoperated demonstrations.
 
-#### Project Website: https://mobile-aloha.github.io/
+The overall pipeline is:
 
-This repo contains the implementation of ACT, Diffusion Policy and VINN, together with 2 simulated environments:
-Transfer Cube and Bimanual Insertion. You can train and evaluate them in sim or real.
-For real, you would also need to install [Mobile ALOHA](https://github.com/MarkFzp/mobile-aloha). This repo is forked from the [ACT repo](https://github.com/tonyzhaozh/act).
+> Teleoperation → Demonstration Collection → ACT Training → Real-World Evaluation
 
-### Updates:
-You can find all scripted/human demo for simulated environments [here](https://drive.google.com/drive/folders/1gPR03v05S1xiInoVJn7G7VJ9pDCnxq9O?usp=share_link).
+This repository is based on [ACT++](https://github.com/MarkFzp/act-plus-plus), with minor modifications for our Mobile ALOHA manipulation tasks.
 
+---
 
-### Repo Structure
-- ``imitate_episodes.py`` Train and Evaluate ACT
-- ``policy.py`` An adaptor for ACT policy
-- ``detr`` Model definitions of ACT, modified from DETR
-- ``sim_env.py`` Mujoco + DM_Control environments with joint space control
-- ``ee_sim_env.py`` Mujoco + DM_Control environments with EE space control
-- ``scripted_policy.py`` Scripted policies for sim environments
-- ``constants.py`` Constants shared across files
-- ``utils.py`` Utils such as data loading and helper functions
-- ``visualize_episodes.py`` Save videos from a .hdf5 dataset
+## 🎬 Demo
 
+### `cup_stack_mobile`
 
-### Installation
+[![Watch Demo](./cup_stack_mobile_thumbnail.png)](./cup_stack_mobile.mp4)
 
-    conda create -n aloha python=3.8.10
-    conda activate aloha
-    pip install torchvision
-    pip install torch
-    pip install pyquaternion
-    pip install pyyaml
-    pip install rospkg
-    pip install pexpect
-    pip install mujoco==2.3.7
-    pip install dm_control==1.0.14
-    pip install opencv-python
-    pip install matplotlib
-    pip install einops
-    pip install packaging
-    pip install h5py
-    pip install ipython
-    cd act/detr && pip install -e .
+Click the image above to watch the demo.
 
-- also need to install https://github.com/ARISE-Initiative/robomimic/tree/r2d2 (note the r2d2 branch) for Diffusion Policy by `pip install -e .`
+---
 
-### Example Usages
+## 📌 Tasks
 
-To set up a new terminal, run:
+### `stack_tomato`
 
-    conda activate aloha
-    cd <path to act repo>
+A dual-arm manipulation task performed with Mobile ALOHA.
 
-### Simulated experiments (LEGACY table-top ALOHA environments)
+- Teleoperated demonstrations: `80`
+- Episode length: `750`
+- Cameras:
+  - `cam_high`
+  - `cam_left_wrist`
+  - `cam_right_wrist`
 
-We use ``sim_transfer_cube_scripted`` task in the examples below. Another option is ``sim_insertion_scripted``.
-To generated 50 episodes of scripted data, run:
+### `cup_stack_mobile`
 
-    python3 record_sim_episodes.py --task_name sim_transfer_cube_scripted --dataset_dir <data save dir> --num_episodes 50
+A manipulation task that combines dual-arm control with mobile-base movement.
 
-To can add the flag ``--onscreen_render`` to see real-time rendering.
-To visualize the simulated episodes after it is collected, run
+- Teleoperated demonstrations: `60`
+- Episode length: `1250`
+- Cameras:
+  - `cam_high`
+  - `cam_left_wrist`
+  - `cam_right_wrist`
 
-    python3 visualize_episodes.py --dataset_dir <data save dir> --episode_idx 0
+---
 
-Note: to visualize data from the mobile-aloha hardware, use the visualize_episodes.py from https://github.com/MarkFzp/mobile-aloha
+## 📊 Results
 
-To train ACT:
-    
-    # Transfer Cube task
-    python3 imitate_episodes.py --task_name sim_transfer_cube_scripted --ckpt_dir <ckpt dir> --policy_class ACT --kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 --num_epochs 2000  --lr 1e-5 --seed 0
+The trained ACT policies were evaluated directly on the **real Mobile ALOHA robot** through repeated real-world rollouts.
 
+| Task | Success | Trials | Success Rate |
+|---|---:|---:|---:|
+| `stack_tomato` | `47` | `50` | `94%` |
+| `cup_stack_mobile` | `43` | `50` | `86%` |
 
-To evaluate the policy, run the same command but add ``--eval``. This loads the best validation checkpoint.
-The success rate should be around 90% for transfer cube, and around 50% for insertion.
-To enable temporal ensembling, add flag ``--temporal_agg``.
-Videos will be saved to ``<ckpt_dir>`` for each rollout.
-You can also add ``--onscreen_render`` to see real-time rendering during evaluation.
+All reported results were obtained from real-world robot executions rather than simulation.
 
-For real-world data where things can be harder to model, train for at least 5000 epochs or 3-4 times the length after the loss has plateaued.
-Please refer to [tuning tips](https://docs.google.com/document/d/1FVIZfoALXg_ZkYKaYVh-qOlaXveq5CtvJHXkY25eYhs/edit?usp=sharing) for more info.
+---
 
-### [ACT tuning tips](https://docs.google.com/document/d/1FVIZfoALXg_ZkYKaYVh-qOlaXveq5CtvJHXkY25eYhs/edit?usp=sharing)
-TL;DR: if your ACT policy is jerky or pauses in the middle of an episode, just train for longer! Success rate and smoothness can improve way after loss plateaus.
+## 🧠 Experiment Configuration
+
+Both tasks were trained using ACT.
+
+| Parameter | `stack_tomato` | `cup_stack_mobile` |
+|---|---:|---:|
+| Training steps | `120,000` | `150,000` |
+| Learning rate | `1e-5` | `2e-5` |
+| Chunk size | `100` | `45` |
+| KL weight | `10` | `10` |
+| Hidden dimension | `512` | `512` |
+| Feedforward dimension | `3200` | `3200` |
+| Backbone | `ResNet-18` | `ResNet-18` |
+| Seed | `0` | `0` |
+
+Temporal aggregation was not used in either experiment.
+
+---
+
+## 🔧 Modification for the Mobile Task
+
+For the `cup_stack_mobile` task, we made a small modification to:
+
+```text
+detr/models/detr_vae.py
+```
+
+The Transformer output selection was changed from:
+
+```python
+# Original
+hs = self.transformer(...)[0]
+```
+
+to:
+
+```python
+# Modified
+hs = self.transformer(...)[-1]
+```
+
+The same change was applied to both Transformer calls in the file.
+
+This modification was introduced as an experimental design choice for the more complex mobile manipulation task, with the intention of using a more deeply processed Transformer representation.
+
+> Note: We did not perform a controlled ablation study comparing `[0]` and `[-1]`, so the observed performance cannot be attributed solely to this modification.
+
+---
+
+## 📁 Prerequisites
+
+To run this project on the real Mobile ALOHA robot, the following repository is also required:
+
+- [MarkFzp/mobile-aloha](https://github.com/MarkFzp/mobile-aloha)
+
+Place both repositories under the same parent directory:
+
+```text
+workspace/
+├── mobile-aloha/
+└── mobile-aloha-act/
+```
+
+Example:
+
+```bash
+git clone https://github.com/MarkFzp/mobile-aloha.git
+git clone https://github.com/Lemon-Farm/mobile-aloha-act.git
+```
+
+---
+
+## ⚙️ Task Configuration
+
+Add the following task definitions to:
+
+```text
+mobile-aloha/aloha_scripts/constants.py
+```
+
+```python
+TASK_CONFIGS = {
+
+    'tomato': {
+        'dataset_dir': DATA_DIR + '/tomato',
+        'num_episodes': 80,
+        'episode_len': 750,
+        'camera_names': [
+            'cam_high',
+            'cam_left_wrist',
+            'cam_right_wrist'
+        ]
+    },
+
+    'cup_stack_mobile': {
+        'dataset_dir': DATA_DIR + '/cup_stack_mobile',
+        'num_episodes': 60,
+        'episode_len': 1250,
+        'camera_names': [
+            'cam_high',
+            'cam_left_wrist',
+            'cam_right_wrist'
+        ]
+    },
+}
+```
+
+This README assumes that the teleoperation demonstrations have already been collected.
+
+---
+
+## 🚀 Training
+
+Training is performed with `imitate_episodes.py`.
+
+### `stack_tomato`
+
+```bash
+python3 imitate_episodes.py \
+    --task_name tomato \
+    --ckpt_dir ./ckpt_tomato \
+    --policy_class ACT \
+    --batch_size <BATCH_SIZE> \
+    --num_steps 120000 \
+    --lr 1e-5 \
+    --kl_weight 10 \
+    --chunk_size 100 \
+    --hidden_dim 512 \
+    --dim_feedforward 3200 \
+    --validate_every 3000 \
+    --save_every 5000 \
+    --seed 0
+```
+
+### `cup_stack_mobile`
+
+```bash
+python3 imitate_episodes.py \
+    --task_name cup_stack_mobile \
+    --ckpt_dir ./ckpt_cup_stack_mobile \
+    --policy_class ACT \
+    --batch_size <BATCH_SIZE> \
+    --num_steps 150000 \
+    --lr 2e-5 \
+    --kl_weight 10 \
+    --chunk_size 45 \
+    --hidden_dim 512 \
+    --dim_feedforward 3200 \
+    --validate_every 3000 \
+    --save_every 5000 \
+    --seed 0
+```
+
+Replace `<BATCH_SIZE>` with the batch size used in the corresponding experiment.
+
+---
+
+## 🤖 Real-World Evaluation
+
+The trained policies were evaluated directly on the physical Mobile ALOHA platform.
+
+- `stack_tomato`: `47 / 50` successful trials
+- `cup_stack_mobile`: `43 / 50` successful trials
+
+The evaluation was conducted through closed-loop policy execution on the real robot.
+
+To run evaluation, use the same configuration as training with the additional `--eval` flag.
+
+For example:
+
+```bash
+python3 imitate_episodes.py \
+    --eval \
+    --task_name cup_stack_mobile \
+    --ckpt_dir ./ckpt_cup_stack_mobile \
+    --policy_class ACT \
+    --batch_size <BATCH_SIZE> \
+    --num_steps 150000 \
+    --lr 2e-5 \
+    --kl_weight 10 \
+    --chunk_size 45 \
+    --hidden_dim 512 \
+    --dim_feedforward 3200 \
+    --seed 0
+```
+
+Because evaluation directly controls the physical robot, verify the robot configuration, workspace, and emergency stop before execution.
+
+---
+
+## 🔗 References
+
+This project builds upon the following repositories:
+
+- [ACT++](https://github.com/MarkFzp/act-plus-plus)
+- [Mobile ALOHA](https://github.com/MarkFzp/mobile-aloha)
+- [ACT](https://github.com/tonyzhaozh/act)
+
+---
+
+## 📄 License
+
+This repository follows the MIT License of the original [ACT++](https://github.com/MarkFzp/act-plus-plus) implementation.
+
+See [`LICENSE`](./LICENSE) for details.
