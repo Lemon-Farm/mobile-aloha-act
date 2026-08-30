@@ -1,3 +1,4 @@
+
 # Mobile ALOHA ACT
 
 This project trains and evaluates **Action Chunking Transformer (ACT)** policies on the **Mobile ALOHA** platform using real-world teleoperated demonstrations.
@@ -14,9 +15,8 @@ This repository is based on [ACT++](https://github.com/MarkFzp/act-plus-plus), w
 
 ### `cup_stack_mobile`
 
-[![Watch Demo](./cup_stack_mobile_thumbnail.png)](./cup_stack_mobile.mp4)
+https://github.com/user-attachments/assets/b95fb1cf-e810-4948-9cfc-33bd3ab84fb8
 
-Click the image above to watch the demo.
 
 ---
 
